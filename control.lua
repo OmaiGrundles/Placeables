@@ -1,5 +1,43 @@
 require("mod-gui")
-toggleState = false
+
+global.playerData = {}
+playerData = global.playerData --I got tired of typing 'global' over and over again
+
+function CreatePlayerData(playerIndex)
+	--Initialize data stored about the player
+	if playerData[playerIndex] == nil then
+		playerData[playerIndex] = { placeablesToggleState = false, placeablesFrameLocation = {x = 0, y = 200} }
+	end
+end
+
+function CreateGUI(player)
+	--Make button on top-left of screen
+	if mod_gui.get_button_flow(player).buttonPlaceablesToggle == nil then
+		mod_gui.get_button_flow(player).add{type = "button", name = "buttonPlaceablesToggle", caption = "P", style = mod_gui.button_style}
+	end
+
+	--Create the Placeables GUI elements
+	if player.gui.screen.framePlaceablesOuter == nil then
+		player.gui.screen.add{type="frame", name ="framePlaceablesOuter", caption="Placeables", style = "quick_bar_window_frame"}
+		--Have to declare the position of the frame afterwards for some reason...
+		player.gui.screen.framePlaceablesOuter.location = playerData[player.index].placeablesFrameLocation
+		player.gui.screen.framePlaceablesOuter.visible = playerData[player.index].placeablesToggleState
+
+		player.gui.screen.framePlaceablesOuter.add{type = "frame", name = "framePlaceablesInner", style = "quick_bar_inner_panel"}
+		player.gui.screen.framePlaceablesOuter.framePlaceablesInner.add{type="table", name = "framePlaceablesTable", column_count = 10, style = "quick_bar_slot_table"}
+	end
+end
+
+function CreateEverything()
+	--Loop through every player and create the GUI/data for that player
+	for key, value in pairs(game.players) do
+		CreatePlayerData(game.players[key].index)
+		CreateGUI(game.players[key])
+	end
+end
+script.on_init(CreateEverything)
+script.on_event(defines.events.on_player_created, CreateEverything)
+
 
 function CheckStack(player, index, lastIndex, table)
 	inventory = player.get_main_inventory()
@@ -26,22 +64,14 @@ function CheckStack(player, index, lastIndex, table)
 end
 
 
-function CreateRefreshGUI(event)
+function UpdateGUI(event)
 
 	local player = game.get_player(event.player_index)
 	local inventory = player.get_main_inventory()
 	
-	--Make button on top-left of screen
-	if mod_gui.get_button_flow(player).buttonPlaceablesToggle == nil then
-		mod_gui.get_button_flow(player).add{type = "button", name = "buttonPlaceablesToggle", caption = "P", style = mod_gui.button_style}
-	end
-
-	--Create the Placeables GUI elements
-	if player.gui.screen.framePlaceablesOuter == nil then
-		player.gui.screen.add{type="frame", name ="framePlaceablesOuter", caption="Placeables", style = "quick_bar_window_frame"}
-		player.gui.screen.framePlaceablesOuter.add{type = "frame", name = "framePlaceablesInner", style = "quick_bar_inner_panel"}
-		player.gui.screen.framePlaceablesOuter.framePlaceablesInner.add{type="table", name = "framePlaceablesTable", column_count = 10, style = "quick_bar_slot_table"}
-	end
+	--Create GUI for first time, if needed
+	--CreatePlayerData(event.player_index)
+	--CreateGUI(player)
 
 	table = player.gui.screen.framePlaceablesOuter.framePlaceablesInner.framePlaceablesTable
 	table.clear()
@@ -56,10 +86,10 @@ function CreateRefreshGUI(event)
 		end
 	end
 
-	player.gui.screen.framePlaceablesOuter.visible = toggleState
+	player.gui.screen.framePlaceablesOuter.visible = playerData[player.index].placeablesToggleState
 
 end
-script.on_event(defines.events.on_player_main_inventory_changed, CreateRefreshGUI)
+script.on_event(defines.events.on_player_main_inventory_changed, UpdateGUI)
 
 
 function PressButton(event)
@@ -74,9 +104,10 @@ function PressButton(event)
 			player.hand_location = {inventory = defines.inventory.character_main, slot = index}
 		end
 		--Toggle button check
-		if event.element.name == "buttonPlaceablesToggle" then 
-			toggleState = not toggleState
-			player.gui.screen.framePlaceablesOuter.visible = toggleState
+		if event.element.name == "buttonPlaceablesToggle" then
+			--Inverse the visibility of the main panel, and update the main panel
+			playerData[player.index].placeablesToggleState = not playerData[player.index].placeablesToggleState
+			UpdateGUI(event)
 		end
 	end
 end
