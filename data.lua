@@ -18,7 +18,7 @@ data:extend({
     {
       type = "sprite",
       name = "spriteContract",
-      filename = "__Placeables__/graphics/contract2.png",
+      filename = "__Placeables__/graphics/contract.png",
       priority = "extra-high-no-scale",
       size = 16,
       scale = 1,
