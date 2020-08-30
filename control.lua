@@ -41,7 +41,7 @@ function CreateGUI(player)
 		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesThin", sprite = "spriteContract"}
 		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesWide", sprite = "utility/expand"}
 		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesCollapse", sprite = "utility/collapse"}
-		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesClose", sprite = "utility/close_white"}
+		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesClose", sprite = "spriteCircle"}
 
 		--Middle layer, after the horizontal flow, borders the buttons
 		outerFrame.add{type = "frame", name = "framePlaceablesInner", style = "quick_bar_inner_panel"}
@@ -117,7 +117,12 @@ function CreateItemButtons(player, table)
 	local buttonRows = math.floor(buttonCount / settingColumns + 0.999)
 	
 	--Move the frame when on 'quickbar mode'
-	if settingQuickbarMode then QuickbarMode(player, buttonRows) end
+	if settingQuickbarMode then 
+		QuickbarMode(player, buttonRows)
+		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesClose.sprite = "spriteOrangeCircle"
+	else 
+		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesClose.sprite = "spriteCircle"
+	end
 
 	--Note the amount of rows of buttons used, and if the frame is collapsed
 	global.playerData[player.index].lastRows = buttonRows
@@ -227,10 +232,11 @@ function PressButton(event)
 			playerData[player.index].placeablesVisibleState = not playerData[player.index].placeablesVisibleState
 		end
 		if event.element.name == "buttonPlaceablesClose" then
-			if event.shift then
-				--Toggle Quickbar Mode if you hold shift and hit the X
-				player.mod_settings["placeablesSettingQuickbarMode"].value = not player.mod_settings["placeablesSettingQuickbarMode"].value
+			if not event.shift then
+				--Toggle Quickbar Mode
+				player.mod_settings["placeablesSettingQuickbarMode"] = {value = not player.mod_settings["placeablesSettingQuickbarMode"].value}
 			else
+				--Hidden sortcut to close the frame when holding shift
 				playerData[player.index].placeablesVisibleState = false
 			end
 		end
