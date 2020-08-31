@@ -83,7 +83,9 @@ local function QuickbarMode(player, rows)
 	if newLocation.x <= 0 then newLocation.x = 0 end
 	
 	--if lastRows was 7 and rows is 8 then Y needs to be reduced by buttonHeight
-	newLocation.y = newLocation.y + ((playerData.lastRows - rows) * buttonHeight) * gameScale
+	if playerData.placeablesCollapsedState == false then
+		newLocation.y = newLocation.y + ((playerData.lastRows - rows) * buttonHeight) * gameScale
+	end
 	
 	--If the player has just clicked the collapse button, stuff needs doing ugh
 	if playerData.placeablesCollapsedState ~= playerData.lastCollapsedState then 
@@ -156,19 +158,28 @@ local function CheckStack(player, inventory, index)
 	--Check to see if we are looking at the 'hand' slot, and add the current held stack to the button list
 	if player.hand_location ~= nil then
 		if index == player.hand_location.slot then
-			if player.cursor_stack.prototype.place_result ~= nil 
-			 or player.cursor_stack.prototype.place_as_tile_result ~= nil 
-			 or player.cursor_stack.prototype.wire_count == 1 then
+			local prototype = player.cursor_stack.prototype
+			if prototype.place_result ~= nil then
+				--Don't add robots to the list
+				if prototype.place_result.type ~= "construction-robot" and prototype.place_result.type ~= "logistic-robot" then
+					AddToButtonList(player, player.cursor_stack, index)
+				end
+			end
+			if prototype.place_as_tile_result ~= nil or prototype.wire_count == 1 then 	
 				AddToButtonList(player, player.cursor_stack, index)
-				return
 			end
 		end
 	end
 	--If item is placeable, add to the button list
-	if inventory[index].valid_for_read then 
-		if inventory[index].prototype.place_result ~= nil 
-		 or inventory[index].prototype.place_as_tile_result ~= nil 
-		 or inventory[index].prototype.wire_count == 1 then
+	if inventory[index].valid_for_read then
+		local prototype = inventory[index].prototype
+		if prototype.place_result ~= nil then
+			--Don't add robots to the list
+			if prototype.place_result.type ~= "construction-robot" and prototype.place_result.type ~= "logistic-robot" then
+				AddToButtonList(player, inventory[index], index)
+			end
+		end
+		if prototype.place_as_tile_result ~= nil or prototype.wire_count == 1 then 	
 			AddToButtonList(player, inventory[index], index)
 		end
 	end
