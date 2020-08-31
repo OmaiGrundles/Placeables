@@ -1,14 +1,19 @@
+--TODO LIST
+--   Change graphic for button on top left
+--   Add shortcut button using graphic mentioned above
+--   Fix unresponsive buttons when items are being changed rapidly/increase performance in general
+--   Add thumbnail
+
 require("mod-gui")
 
 global.playerData = {}
 
-function CreatePlayerData(playerIndex)
+local function CreatePlayerData(playerIndex)
 	playerData = global.playerData
 	--Initialize data stored about the player
 	if playerData[playerIndex] == nil then
 		playerData[playerIndex] = { 
 			placeablesVisibleState = false, 
-			placeablesFrameLocation = {x = 0, y = 200}, 
 			placeablesCollapsedState = false,
 			buttonData = {},
 			lastRows = 0,
@@ -17,12 +22,13 @@ function CreatePlayerData(playerIndex)
 	end
 end
 
-function CreateGUI(player)
+local function CreateGUI(player)
 	
 	playerData = global.playerData
 	--Make button on top-left of screen
 	if mod_gui.get_button_flow(player).buttonPlaceablesVisible == nil then
-		mod_gui.get_button_flow(player).add{type = "button", name = "buttonPlaceablesVisible", caption = "P", style = mod_gui.button_style}
+		mod_gui.get_button_flow(player).add{type = "button", name = "buttonPlaceablesVisible", caption = "P", 
+			style = mod_gui.button_style, tooltip = {"placeablesTooltips.topButton"} }
 	end
 
 	--Create the main panel GUI elements
@@ -31,24 +37,28 @@ function CreateGUI(player)
 		player.gui.screen.add{type = "frame", name ="framePlaceablesOuter", style = "quick_bar_window_frame", direction = "vertical"}
 		local outerFrame = player.gui.screen.framePlaceablesOuter
 		--Have to declare the position of the frame afterwards for some reason...
-		outerFrame.location = playerData[player.index].placeablesFrameLocation
+		outerFrame.location = {x = 30, y = 200}
 		outerFrame.visible = playerData[player.index].placeablesVisibleState
 		--Titlebar Flow
 		outerFrame.add{type = "flow", name = "placeablesTitleFlow", direction = "horizontal"}
 		local titleFlow = outerFrame.placeablesTitleFlow
 		titleFlow.add{type = "label", name = "placeablesLabel", caption = "Placeables", style = "frame_title"}.drag_target = outerFrame
 		titleFlow.add{type = "empty-widget", style = "draggableWidget"}.drag_target = outerFrame
-		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesThin", sprite = "spriteContract"}
-		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesWide", sprite = "utility/expand"}
-		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesCollapse", sprite = "utility/collapse"}
-		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesClose", sprite = "spriteCircle"}
+		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesThin", 
+			sprite = "spriteContract", tooltip = {"placeablesTooltips.reduce"} }
+		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesWide", 
+			sprite = "utility/expand", tooltip = {"placeablesTooltips.expand"} }
+		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesCollapse", 
+			sprite = "utility/collapse", tooltip = {"placeablesTooltips.collapse"} }
+		titleFlow.add{type = "sprite-button", style = "frame_action_button", name = "buttonPlaceablesModeSwitch", 
+			sprite = "spriteCircle", tooltip = {"placeablesTooltips.modeSwitch"} }
 
 		--Middle layer, after the horizontal flow, borders the buttons
 		outerFrame.add{type = "frame", name = "framePlaceablesInner", style = "quick_bar_inner_panel"}
 	end
 end
 
-function InitializeMod()
+local function InitializeMod()
 	--Loop through every player and create the GUI/data for that player
 	for key, value in pairs(game.players) do
 		CreatePlayerData(game.players[key].index)
@@ -58,7 +68,7 @@ end
 script.on_init(InitializeMod)
 script.on_event(defines.events.on_player_created, InitializeMod)
 
-function QuickbarMode(player, rows)
+local function QuickbarMode(player, rows)
 	--The goal of Quickbar Mode is to keep the bottom of the frame locked in place, instead of the top, when the frame's size changes
 	local playerData = global.playerData[player.index]
 	local frameLocation = player.gui.screen.framePlaceablesOuter.location
@@ -102,7 +112,7 @@ function QuickbarMode(player, rows)
 	player.gui.screen.framePlaceablesOuter.location = frameLocation
 end
 
-function CreateItemButtons(player, table)
+local function CreateItemButtons(player, table)
 	local settingColumns = player.mod_settings["placeablesSettingColumns"].value
 	local settingQuickbarMode = player.mod_settings["placeablesSettingQuickbarMode"].value
 	--Create all the buttons for selecting placeable items
@@ -119,9 +129,9 @@ function CreateItemButtons(player, table)
 	--Move the frame when on 'quickbar mode'
 	if settingQuickbarMode then 
 		QuickbarMode(player, buttonRows)
-		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesClose.sprite = "spriteOrangeCircle"
+		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesModeSwitch.sprite = "spriteOrangeCircle"
 	else 
-		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesClose.sprite = "spriteCircle"
+		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesModeSwitch.sprite = "spriteCircle"
 	end
 
 	--Note the amount of rows of buttons used, and if the frame is collapsed
@@ -129,7 +139,7 @@ function CreateItemButtons(player, table)
 	global.playerData[player.index].lastCollapsedState = global.playerData[player.index].placeablesCollapsedState
 end
 
-function AddToButtonList(player, item, index)
+local function AddToButtonList(player, item, index)
 	local buttonData = global.playerData[player.index].buttonData
 	for key, value in pairs(buttonData) do
 		--Search for the existance of the item already in the button list
@@ -142,11 +152,13 @@ function AddToButtonList(player, item, index)
 	buttonData[item.name] = {index = index, count = item.count}
 end
 
-function CheckStack(player, inventory, index)
+local function CheckStack(player, inventory, index)
 	--Check to see if we are looking at the 'hand' slot, and add the current held stack to the button list
 	if player.hand_location ~= nil then
 		if index == player.hand_location.slot then
-			if player.cursor_stack.prototype.place_result ~= nil or player.cursor_stack.prototype.place_as_tile_result ~= nil then
+			if player.cursor_stack.prototype.place_result ~= nil 
+			 or player.cursor_stack.prototype.place_as_tile_result ~= nil 
+			 or player.cursor_stack.prototype.wire_count == 1 then
 				AddToButtonList(player, player.cursor_stack, index)
 				return
 			end
@@ -154,20 +166,23 @@ function CheckStack(player, inventory, index)
 	end
 	--If item is placeable, add to the button list
 	if inventory[index].valid_for_read then 
-		if inventory[index].prototype.place_result ~= nil or inventory[index].prototype.place_as_tile_result ~= nil then
+		if inventory[index].prototype.place_result ~= nil 
+		 or inventory[index].prototype.place_as_tile_result ~= nil 
+		 or inventory[index].prototype.wire_count == 1 then
 			AddToButtonList(player, inventory[index], index)
 		end
 	end
 end
 
 
-function UpdateGUI(event)
+local function UpdateGUI(event)
 	local player = game.get_player(event.player_index)
 	local settingColumns = player.mod_settings["placeablesSettingColumns"].value
-	local settingQuickbarMode = player.mod_settings["placeablesSettingQuickbarMode"].value
+	local settingHideButton = player.mod_settings["placeablesSettingHideButton"].value
 	local inventory = player.get_main_inventory()
 	local innerFrame = player.gui.screen.framePlaceablesOuter.framePlaceablesInner
-	
+	local titleFlow = player.gui.screen.framePlaceablesOuter.placeablesTitleFlow
+
 	--delete all the item buttons, recreate the table, this allows the column count setting to be changed during game
 	if innerFrame.framePlaceablesTable ~= nil then innerFrame.framePlaceablesTable.destroy() end
 	innerFrame.add{type = "table", name = "framePlaceablesTable", column_count = settingColumns, style = "quick_bar_slot_table"}
@@ -185,17 +200,18 @@ function UpdateGUI(event)
 	--Recreate all the item buttons
 	CreateItemButtons(player, innerFrame.framePlaceablesTable)
 
+	--Partially hides the word 'Placeables' and removes the leftmost button when the column amount is 4 
 	if settingColumns == 4 then
-		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesThin.visible = false
-		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.placeablesLabel.caption = "Placeab.."
+		titleFlow.buttonPlaceablesThin.visible = false
+		titleFlow.placeablesLabel.caption = "Placeab.."
 	else
-		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesThin.visible = true
-		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.placeablesLabel.caption = "Placeables"
+		titleFlow.buttonPlaceablesThin.visible = true
+		titleFlow.placeablesLabel.caption = "Placeables"
 	end
-
+	--Changes the visibility of the top-left button depending on settings
+	mod_gui.get_button_flow(player).buttonPlaceablesVisible.visible = not settingHideButton
 
 	innerFrame.visible = not global.playerData[player.index].placeablesCollapsedState
-	--player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.visible = not settingQuickbarMode
 	player.gui.screen.framePlaceablesOuter.visible = global.playerData[player.index].placeablesVisibleState
 
 	--store the current location of the frame
@@ -208,11 +224,10 @@ script.on_event(defines.events.on_player_built_tile, UpdateGUI)
 script.on_event(defines.events.on_player_mined_tile, UpdateGUI)
 
 
-function PressButton(event)
+local function PressButton(event)
 	local playerData = global.playerData
 	if event.element.get_mod() == "Placeables" then
 		local player = game.get_player(event.player_index)
-		local settingColumns = player.mod_settings["placeablesSettingColumns"].value
 		--Check to see if there is a number attached to the element, if so that is one of the dynamically generated buttons
 		local index = tonumber(string.match(event.element.name, "%d+"))
 		if index ~= nil then
@@ -231,26 +246,36 @@ function PressButton(event)
 			--Inverse the visibility of the main panel
 			playerData[player.index].placeablesVisibleState = not playerData[player.index].placeablesVisibleState
 		end
-		if event.element.name == "buttonPlaceablesClose" then
+		
+		if event.element.name == "buttonPlaceablesModeSwitch" then
 			if not event.shift then
 				--Toggle Quickbar Mode
 				player.mod_settings["placeablesSettingQuickbarMode"] = {value = not player.mod_settings["placeablesSettingQuickbarMode"].value}
 			else
 				--Hidden sortcut to close the frame when holding shift
-				playerData[player.index].placeablesVisibleState = false
+				--playerData[player.index].placeablesVisibleState = false
 			end
 		end
 		if event.element.name == "buttonPlaceablesCollapse" then 
 			playerData[player.index].placeablesCollapsedState = not playerData[player.index].placeablesCollapsedState
 		end
+
 		--These buttons increase/decrease the number of columns of buttons
 		local settingColumns = player.mod_settings["placeablesSettingColumns"]
 		if event.element.name == "buttonPlaceablesWide" then
-			settingColumns = {value = settingColumns.value + 1}
+			if event.shift then 
+				settingColumns = {value = settingColumns.value + 2}
+			else 
+				settingColumns = {value = settingColumns.value + 1}
+			end
 			player.mod_settings["placeablesSettingColumns"] = settingColumns
 		end
 		if event.element.name == "buttonPlaceablesThin" then
-			settingColumns = {value = settingColumns.value - 1}
+			if event.shift then
+				settingColumns = {value = 4}
+			else 
+				settingColumns = {value = settingColumns.value - 1}
+			end
 			player.mod_settings["placeablesSettingColumns"] = settingColumns
 		end
 
@@ -258,3 +283,17 @@ function PressButton(event)
 	end
 end
 script.on_event(defines.events.on_gui_click, PressButton)
+
+local function ToggleVisibility(event)
+	local playerData = global.playerData[event.player_index]
+	playerData.placeablesVisibleState = not playerData.placeablesVisibleState
+	UpdateGUI(event)
+end
+script.on_event("placeablesToggleVisibilty", ToggleVisibility)
+
+local function ToggleCollapse(event)
+	local playerData = global.playerData[event.player_index]
+	playerData.placeablesCollapsedState = not playerData.placeablesCollapsedState
+	UpdateGUI(event)
+end
+script.on_event("placeablesToggleCollapse", ToggleCollapse)

@@ -1,8 +1,8 @@
 {
   "name": "Placeables",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "factorio_version": "0.18",
-  "title": "Placeables: The crazy quickbar extension!",
+  "title": "Placeables: Show everything you can build with!",
   "author": "OmaiGrundles",
-  "description": "Blerp"
+  "description": "A quickbar-inspired window that shows all items you can use for building. Designed for use with megamods that add so many buildings that the quickbar cant handle them all."
 }
