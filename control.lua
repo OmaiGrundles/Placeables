@@ -1,12 +1,15 @@
 --TODO LIST
 --   Change graphic for button on top left
 --   Add shortcut button using graphic mentioned above
---   Fix unresponsive buttons when items are being changed rapidly/increase performance in general
---   Add thumbnail
+--	 Remove copper wire from the list of placeables
+--   Maybe add an option for left-hand buttons?
 
 require("mod-gui")
 
 global.playerData = {}
+local itemLocaleCache = {}
+local itemValidCache = {}
+local ignoreEventFlag = false
 
 local function CreatePlayerData(playerIndex)
 	playerData = global.playerData
@@ -17,7 +20,9 @@ local function CreatePlayerData(playerIndex)
 			placeablesCollapsedState = false,
 			buttonData = {},
 			lastRows = 0,
-			lastCollapsedState = false
+			lastCollapsedState = false,
+			lastColumns = 0,
+			buttonCache = {}
 		}
 	end
 end
@@ -57,16 +62,6 @@ local function CreateGUI(player)
 		outerFrame.add{type = "frame", name = "framePlaceablesInner", style = "quick_bar_inner_panel"}
 	end
 end
-
-local function InitializeMod()
-	--Loop through every player and create the GUI/data for that player
-	for key, value in pairs(game.players) do
-		CreatePlayerData(game.players[key].index)
-		CreateGUI(game.players[key])
-	end
-end
-script.on_init(InitializeMod)
-script.on_event(defines.events.on_player_created, InitializeMod)
 
 local function QuickbarMode(player, rows)
 	--The goal of Quickbar Mode is to keep the bottom of the frame locked in place, instead of the top, when the frame's size changes
@@ -109,30 +104,61 @@ local function QuickbarMode(player, rows)
 		end
 	end
 
+	--Prevent the frame from going above the screen
+	if newLocation.y < 0 then newLocation.y = 0 end
+
 	--Finally, move the frame to the calculated position
 	frameLocation = {x = newLocation.x, y = newLocation.y}
 	player.gui.screen.framePlaceablesOuter.location = frameLocation
 end
 
-local function CreateItemButtons(player, table)
+local function CreateItemButtons(player, guiTable)
 	local settingColumns = player.mod_settings["placeablesSettingColumns"].value
 	local settingQuickbarMode = player.mod_settings["placeablesSettingQuickbarMode"].value
-	--Create all the buttons for selecting placeable items
-	local buttonCount = 0
 	local buttonData = global.playerData[player.index].buttonData
-	for key, value in pairs(buttonData) do
-		table.add{type="sprite-button", sprite = "item/"..key, name = "buttonPlaceables"..buttonData[key].index, 
-			number = buttonData[key].count, style = "slot_button", tooltip = 
-			{"", "[font=default-bold][color=255,230,192]", game.item_prototypes[key].localised_name, "[/color][/font]"} }
-		buttonCount = buttonCount + 1
-	end
-	local buttonRows = math.floor(buttonCount / settingColumns + 0.999)
+	local buttonIndex = 1
+	local buttonCache = global.playerData[player.index].buttonCache
 	
+	--Create all the buttons for selecting placeable items
+	for key, value in pairs(buttonData) do
+		--Store the localized item name in a cache
+		if itemLocaleCache[key] == nil then 
+			itemLocaleCache[key] = {"", "[font=default-bold][color=255,230,192]", game.item_prototypes[key].localised_name, "[/color][/font]"}
+		end
+		--Create and cache button if one doesnt exist
+		if buttonCache[buttonIndex] == nil then
+			buttonCache[buttonIndex] = guiTable.add{ type="sprite-button", sprite = "item/"..key, name = "buttonPlaceables"..buttonIndex, 
+			 number = value.count, style = "slot_button", tooltip = itemLocaleCache[key]}
+			--Record what button this item is shown on
+			value.buttonIndex = buttonIndex
+		else
+			--..Or modify the existing button to display new info
+			button = buttonCache[buttonIndex]
+			if button.number ~= value.count then button.number = value.count end
+			if button.sprite ~= "item/"..key then
+				button.sprite = "item/"..key
+				button.tooltip = itemLocaleCache[key]
+			end
+			--Record what button this item is shown on
+			value.buttonIndex = buttonIndex
+		end
+		buttonIndex = buttonIndex + 1
+	end
+	local buttonRows = math.floor((buttonIndex - 1) / settingColumns + 0.999)
+	
+	--Delete excess buttons
+	if buttonCache[buttonIndex] ~= nil then 
+		for i = buttonIndex, #buttonCache do
+			buttonCache[i].destroy()
+			buttonCache[i] = nil
+		end
+	end
+
 	--Move the frame when on 'quickbar mode'
 	if settingQuickbarMode then 
 		QuickbarMode(player, buttonRows)
 		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesModeSwitch.sprite = "spriteOrangeCircle"
-	else 
+	else
 		player.gui.screen.framePlaceablesOuter.placeablesTitleFlow.buttonPlaceablesModeSwitch.sprite = "spriteCircle"
 	end
 
@@ -141,72 +167,82 @@ local function CreateItemButtons(player, table)
 	global.playerData[player.index].lastCollapsedState = global.playerData[player.index].placeablesCollapsedState
 end
 
-local function AddToButtonList(player, item, index)
-	local buttonData = global.playerData[player.index].buttonData
-	for key, value in pairs(buttonData) do
-		--Search for the existance of the item already in the button list
-		if item.name == key then
-			buttonData[key].count = buttonData[key].count + item.count
-			return
+local function IsPlaceableItem(prototype)
+	local placeResult = prototype.place_result
+	if placeResult ~= nil then
+		--Don't add robots to the list
+		if placeResult.type ~= "construction-robot" and placeResult.type ~= "logistic-robot" then
+			return true
+		end
+	else
+		--Item is valid if its something like concrete or red wire
+		if prototype.place_as_tile_result ~= nil or prototype.wire_count == 1 then
+			return true
+		else
+			return false
 		end
 	end
-	--If list entry doesnt exist, create it
-	buttonData[item.name] = {index = index, count = item.count}
 end
 
-local function CheckStack(player, inventory, index)
-	--Check to see if we are looking at the 'hand' slot, and add the current held stack to the button list
-	if player.hand_location ~= nil then
-		if index == player.hand_location.slot then
-			local prototype = player.cursor_stack.prototype
-			if prototype.place_result ~= nil then
-				--Don't add robots to the list
-				if prototype.place_result.type ~= "construction-robot" and prototype.place_result.type ~= "logistic-robot" then
-					AddToButtonList(player, player.cursor_stack, index)
+local function CheckInventory(player, inventory, buttonData, handSlot)
+	if handSlot ~= -1 then
+		ignoreEventFlag = true
+		--Put the held stack back into the inventory temporarily so that contents will be in proper order
+		player.clean_cursor()
+	end
+	local contents = inventory.get_contents()
+	for key, value in pairs(contents) do
+		if itemValidCache[key] then
+			buttonData[key] = {count = value}
+		else
+			if itemValidCache[key] == nil then
+				--Determine if item is placeable and cache the result
+				itemValidCache[key] = IsPlaceableItem(game.item_prototypes[key])
+				if itemValidCache[key] then
+					buttonData[key] = {count = value}
 				end
 			end
-			if prototype.place_as_tile_result ~= nil or prototype.wire_count == 1 then 	
-				AddToButtonList(player, player.cursor_stack, index)
-			end
 		end
 	end
-	--If item is placeable, add to the button list
-	if inventory[index].valid_for_read then
-		local prototype = inventory[index].prototype
-		if prototype.place_result ~= nil then
-			--Don't add robots to the list
-			if prototype.place_result.type ~= "construction-robot" and prototype.place_result.type ~= "logistic-robot" then
-				AddToButtonList(player, inventory[index], index)
-			end
-		end
-		if prototype.place_as_tile_result ~= nil or prototype.wire_count == 1 then 	
-			AddToButtonList(player, inventory[index], index)
-		end
+	if handSlot ~= -1 then
+		player.cursor_stack.transfer_stack(inventory[handSlot])
+		player.hand_location = {inventory = inventory.index, slot = handSlot}
 	end
 end
 
-
-local function UpdateGUI(event)
-	local player = game.get_player(event.player_index)
+local function UpdateGUI(playerIndex)
+	local player = game.get_player(playerIndex)
+	local playerData = global.playerData[player.index]
 	local settingColumns = player.mod_settings["placeablesSettingColumns"].value
 	local settingHideButton = player.mod_settings["placeablesSettingHideButton"].value
 	local inventory = player.get_main_inventory()
 	local innerFrame = player.gui.screen.framePlaceablesOuter.framePlaceablesInner
 	local titleFlow = player.gui.screen.framePlaceablesOuter.placeablesTitleFlow
 
-	--delete all the item buttons, recreate the table, this allows the column count setting to be changed during game
-	if innerFrame.framePlaceablesTable ~= nil then innerFrame.framePlaceablesTable.destroy() end
-	innerFrame.add{type = "table", name = "framePlaceablesTable", column_count = settingColumns, style = "quick_bar_slot_table"}
+	--If column count changes, we need to destroy the table and rebuild
+	if playerData.lastColumns ~= settingColumns and innerFrame.framePlaceablesTable ~= nil then
+		innerFrame.framePlaceablesTable.destroy()
+		playerData.buttonCache = {}
+	end
+	playerData.lastColumns = settingColumns
+
+	--Create the table that holds all the buttons if needed
+	if innerFrame.framePlaceablesTable == nil then
+		innerFrame.add{type = "table", name = "framePlaceablesTable", column_count = settingColumns, style = "quick_bar_slot_table"}
+	end
+	
+	--Updating to new mod version: Delete all the buttons if buttonCache is empty
+	if playerData.buttonCache[1] == nil then innerFrame.framePlaceablesTable.clear() end
 
 	--Delete the old list of buttons
-	global.playerData[player.index].buttonData = {}
+	playerData.buttonData = {}
 	--Sorts the inventory if the player has autosort on, solves an edge case
 	if player.auto_sort_main_inventory then inventory.sort_and_merge() end
 
-	--Create list of buttons to be made
-	for i = 1, #inventory do
-		CheckStack(player, inventory, i)
-	end
+	--Create list of buttons to be made by looping through the player's inventory
+	local handSlot = -1
+	if player.hand_location ~= nil then handSlot = player.hand_location.slot end
+	CheckInventory(player, inventory, playerData.buttonData, handSlot)
 
 	--Recreate all the item buttons
 	CreateItemButtons(player, innerFrame.framePlaceablesTable)
@@ -226,30 +262,96 @@ local function UpdateGUI(event)
 	player.gui.screen.framePlaceablesOuter.visible = global.playerData[player.index].placeablesVisibleState
 
 	--store the current location of the frame
-	global.playerData[player.index].lastFrameLocation = player.gui.screen.framePlaceablesOuter.location
+	playerData.lastFrameLocation = player.gui.screen.framePlaceablesOuter.location
 end
-script.on_event(defines.events.on_player_main_inventory_changed, UpdateGUI)
-script.on_event(defines.events.on_built_entity, UpdateGUI)
-script.on_event(defines.events.on_player_mined_item, UpdateGUI)
-script.on_event(defines.events.on_player_built_tile, UpdateGUI)
-script.on_event(defines.events.on_player_mined_tile, UpdateGUI)
 
+local function CallUpdateWhenNotFlagged(event)
+	if ignoreEventFlag == false then
+		UpdateGUI(event.player_index)
+	else 
+		ignoreEventFlag = false
+	end
+end
+script.on_event(defines.events.on_player_main_inventory_changed, CallUpdateWhenNotFlagged)
+script.on_event(defines.events.on_player_mined_item, CallUpdateWhenNotFlagged)
+script.on_event(defines.events.on_player_mined_tile, CallUpdateWhenNotFlagged)
+
+local function PlayerPlacedEntity(event)
+	local player = game.get_player(event.player_index)
+	local buttonData = global.playerData[player.index].buttonData
+	local guiTable = player.gui.screen.framePlaceablesOuter.framePlaceablesInner.framePlaceablesTable
+
+	local item = event.item
+	--If the player placed a blueprint or the like, this should be nil and nothing should happen
+	if item ~= nil then
+		local name = item.name
+
+		--Attempt to catch a crash that I belive is caused by placing ghosts
+		if buttonData[name] == nil then return end
+		if buttonData[name].buttonIndex == nil then return end
+
+		local button = guiTable["buttonPlaceables"..buttonData[name].buttonIndex]
+		--Reduce the number on the button by 1
+		buttonData[name].count = buttonData[name].count - 1
+		button.number = buttonData[name].count
+		--If number becomes zero, hide button
+		if button.number == 0 then
+			UpdateGUI(event.player_index)
+		end
+	end
+end
+script.on_event(defines.events.on_built_entity, PlayerPlacedEntity)
+
+local function PlayerPlacedTile(event)
+	local player = game.get_player(event.player_index)
+	local buttonData = global.playerData[player.index].buttonData
+	local guiTable = player.gui.screen.framePlaceablesOuter.framePlaceablesInner.framePlaceablesTable
+
+	local item = event.item
+	local subtractAmount = 0
+	--Count number of tiles that were placed
+	for key, value in pairs(event.tiles) do
+		subtractAmount = subtractAmount + 1
+	end
+
+	local name = item.name
+	--If the player runs out of a tile while placing over another tile, buttonData[name] becomes
+	-- nil because player_mined_tile fired right before this, so if that happens we just skip
+	-- all the following
+	if buttonData[name] ~= nil then
+		local button = guiTable["buttonPlaceables"..buttonData[name].buttonIndex]
+		--Reduce the number on the button by 1
+		buttonData[name].count = buttonData[name].count - subtractAmount
+		button.number = buttonData[name].count
+		--If number becomes zero, hide button
+		if button.number == 0 then
+			UpdateGUI(event.player_index)
+		end
+	end
+end
+script.on_event(defines.events.on_player_built_tile, PlayerPlacedTile)
 
 local function PressButton(event)
 	local playerData = global.playerData
 	if event.element.get_mod() == "Placeables" then
 		local player = game.get_player(event.player_index)
 		--Check to see if there is a number attached to the element, if so that is one of the dynamically generated buttons
-		local index = tonumber(string.match(event.element.name, "%d+"))
-		if index ~= nil then
-			local itemInCursor = nil
+		local buttonNumber = tonumber(string.match(event.element.name, "%d+"))
+		if buttonNumber ~= nil then
 			local inventory = player.get_main_inventory()
-			if player.cursor_stack.valid_for_read then itemInCursor = player.cursor_stack.name end
+			local itemName = string.sub(event.element.sprite, 6)
+
+			local cursorItemName = nil
+			if player.cursor_stack.valid_for_read then cursorItemName = player.cursor_stack.name end
 			player.clean_cursor()
+
 			--If player selected the item that was already in cursor, then do nothing else, which leaves cursor empty
-			if itemInCursor ~= inventory[index].name then
-				player.cursor_stack.transfer_stack(inventory[index])
-				player.hand_location = {inventory = defines.inventory.character_main, slot = index}
+			if cursorItemName ~= itemName then
+				local itemStack, itemIndex = inventory.find_item_stack(itemName)
+				if itemStack ~= nil then
+					player.cursor_stack.transfer_stack(itemStack)
+					player.hand_location = {inventory = inventory.index, slot = itemIndex}
+				end
 			end
 		end
 		--Visible button check
@@ -290,21 +392,36 @@ local function PressButton(event)
 			player.mod_settings["placeablesSettingColumns"] = settingColumns
 		end
 
-		UpdateGUI(event)
+		UpdateGUI(event.player_index)
 	end
 end
 script.on_event(defines.events.on_gui_click, PressButton)
 
+local function InitializeMod()
+	--Loop through every player and create the GUI/data for that player
+	for key, value in pairs(game.players) do
+		CreatePlayerData(game.players[key].index)
+		CreateGUI(game.players[key])
+		--Delete/create the button cache
+		playerData[game.players[key].index].buttonCache = {}
+		--Fully create/update all the buttons
+		UpdateGUI(game.players[key].index)
+	end
+end
+script.on_init(InitializeMod)
+script.on_event(defines.events.on_player_created, InitializeMod)
+script.on_configuration_changed(InitializeMod)
+
 local function ToggleVisibility(event)
 	local playerData = global.playerData[event.player_index]
 	playerData.placeablesVisibleState = not playerData.placeablesVisibleState
-	UpdateGUI(event)
+	UpdateGUI(event.player_index)
 end
 script.on_event("placeablesToggleVisibilty", ToggleVisibility)
 
 local function ToggleCollapse(event)
 	local playerData = global.playerData[event.player_index]
 	playerData.placeablesCollapsedState = not playerData.placeablesCollapsedState
-	UpdateGUI(event)
+	UpdateGUI(event.player_index)
 end
 script.on_event("placeablesToggleCollapse", ToggleCollapse)

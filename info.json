@@ -1,8 +1,9 @@
 {
   "name": "Placeables",
-  "version": "0.8.0",
+  "version": "0.9.20",
   "factorio_version": "0.18",
   "title": "Placeables: Show everything you can build with!",
+  "homepage": "https://github.com/OmaiGrundles/Placeables_0.8.0",
   "author": "OmaiGrundles",
   "description": "A quickbar-inspired window that shows all items you can use for building. Designed for use with megamods that add so many buildings that the quickbar cant handle them all."
 }
