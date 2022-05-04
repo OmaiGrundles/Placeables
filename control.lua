@@ -433,8 +433,12 @@ local function PressButton(event)
 			if cursorItemName ~= itemName then
 				local itemStack, itemIndex = inventory.find_item_stack(itemName)
 				if itemStack ~= nil then
-					player.cursor_stack.transfer_stack(itemStack)
-					player.hand_location = {inventory = inventory.index, slot = itemIndex}
+					local pickupResult = player.cursor_stack.transfer_stack(itemStack)
+					if pickupResult then
+						player.hand_location = {inventory = inventory.index, slot = itemIndex}
+					else
+						log("Unable to reserve inventory slot for cursor stack")
+					end
 				end
 			end
 		end
