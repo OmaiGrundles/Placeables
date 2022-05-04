@@ -2,8 +2,8 @@
 Version: 1.1.2
 Date: 2022-5-04
   Bugfixes:
-    - Fix empty frame if the Placeables mod button is the only one, and is also disabled
-    - Fix error when picking up an item larger than a stack from the placeables bar
+    - Fix empty frame if this is the only mod that uses the top button row, and user disabled that button in settings
+    - Fix error when user picks up a item via this mods GUI immediatly after loading save when the stack size has been reduced
 
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.1
