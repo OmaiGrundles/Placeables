@@ -1,0 +1,154 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.1.1
+Date: 2022-4-23
+  Features:
+    - Added modules to the list of 'placeables' due to popular demand
+
+---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+Date: 2022-4-14
+  Bugfixes:
+    - Fixes a crash when removing power armor with a full inventory
+    - Fixes an issue with trying to place wires while bots are interacting with your inventory
+
+---------------------------------------------------------------------------------------------------
+Version: 1.0.0
+Date: 2020-11-23
+  Changes:
+    - Updated for Factorio Version 1.1
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.40
+Date: 2020-09-17
+  Bugfixes:
+    - Fixes placeables GUI not updating sometimes when picking up a placeable object that has non-placeable items inside
+  Optimisations:
+    - Slight performance boost when mining large inventories in some cases
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.36
+Date: 2020-09-16
+  Bugfixes:
+    - Fixed the collapse hotkey (default ctrl-p) not working properly in quickbar mode
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.34
+Date: 2020-09-14
+  Bugfixes:
+    - Fix for a theoretical situation where two people are in multiplayer using different languages
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.30
+Date: 2020-09-11
+  Optimisations:
+    - One final major optimization! removing tiles and entities now should be massively faster just like placing entities/tiles was. So much time spend on optimizing but I think I'm finally done, this mod barely takes any resources to run at this point!
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.26
+Date: 2020-09-09
+  Features:
+    - Added an option to move all the buttons to the left side of the window
+  Changes:
+    - Removed the options for column count and quickbar mode within factorio's settings menu, since they are more easily accessed by the buttons in-game and there was issues dealing with having the settings for them as well
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.25
+Date: 2020-09-08
+  Features:
+    - Added this changelog, thanks to Completion for doing this for me :)
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.24
+Date: 2020-09-08
+  Bugfixes:
+    - Fixed a weird edge case where a crash could occur if the max size of an item was changed to be lower than it was
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.23
+Date: 2020-09-07
+  Bugfixes:
+    - A very weird crash that was reported due to some unknown interaction with an unknown mod that deletes items from your hand has been fixed as much as I can from my end.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.22
+Date: 2020-09-07
+  Bugfixes:
+    - Fixed a stupid mistake of mine that made the game crash when trying to start a new game. :(
+    - Fixed (hopefully) an crash when placing tiles in an editor/god mode of some type.
+    - Fixed ghosts incorrectly changing the number on the associated item button.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.20
+Date: 2020-09-06
+  Optimisations:
+    - Even more optimizations! Up to 3 times faster than the last version! Currently around 16-160x faster than version 0.8.4 depending on what you do. Hoo boy was that version just terrible.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.15
+Date: 2020-09-04
+  Optimisations:
+    - Performance tweaks.
+  Bugfixes:
+    - Fixed some issues that happened when upgrading from older versions of this mod.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.12
+Date: 2020-09-04
+  Bugfixes:
+    - Fixed another crash. Stomping bugs is hard sometimes.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.10
+Date: 2020-09-04
+  Bugfixes:
+    - Fixes some crashes that the last version introduced. Much apologies to the people who had to deal with those.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.9
+Date: 2020-09-03
+  Optimisations:
+    - Insane (as in orders of magnitude) faster performance when placing objects and tiles! All these hours didn't go to waste!
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.7
+Date: 2020-09-03
+  Optimisations:
+    - Another batch of optimizations.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.6
+Date: 2020-09-03
+  Bugfixes:
+    - Slight fix regarding use of a library that wasn't needed.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.5
+Date: 2020-09-02
+  Optimisations:
+    - Major optimization, should run much faster. More planned.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.9.0
+Date: 2020-09-02
+  Optimisations:
+    - Some optimization and small fixes. More planned.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.8.4
+Date: 2020-09-01
+  Bugfixes:
+    - Fixed crashes when in editor/god/creative mode.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.8.3
+Date: 2020-09-01
+  Bugfixes:
+    - Fixed slight issue with the possibility of the window going upwards offscreen.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.8.2
+Date: 2020-09-01
+  Features:
+    - Removed construction/logistics robots from the list, hopefully will work for most/all modded bots as well.
+  Bugfixes:
+    - Fixed a bug regarding quickbar mode when the window was collapsed.
