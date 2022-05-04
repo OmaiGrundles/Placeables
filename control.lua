@@ -61,13 +61,41 @@ local function CreateTitleFlow(player, outerFrame)
 	end
 end
 
+local function DestroyModButton(player)
+	local gui = player.gui.top
+	local flow = gui.mod_gui_button_flow or (gui.mod_gui_top_frame and gui.mod_gui_top_frame.mod_gui_inner_frame)
+	if flow and flow.buttonPlaceablesVisible then
+		flow.buttonPlaceablesVisible.destroy()
+		-- Remove empty frame if we're the only thing there, remove the parent frame if we just removed the only child
+		if #flow.children_names == 0 then
+		  local parent = flow.parent
+		  flow.destroy()
+		  if parent and #parent.children_names == 0 then
+			parent.destroy()
+		  end
+		end
+	end
+end
+
+local function CreateModButton(playerIndex)
+	local player = game.get_player(playerIndex)
+	DestroyModButton(player)
+	if player.mod_settings["placeablesSettingHideButton"].value then
+		return
+	end
+	mod_gui.get_button_flow(player).add{
+		type = "button",
+		name = "buttonPlaceablesVisible",
+		caption = "P", 
+		style = mod_gui.button_style,
+		tooltip = {"placeablesTooltips.topButton"}
+	}
+end
+
 local function CreateGUI(player)
 	playerData = global.playerData[player.index]
 	--Make button on top-left of screen
-	if mod_gui.get_button_flow(player).buttonPlaceablesVisible == nil then
-		mod_gui.get_button_flow(player).add{type = "button", name = "buttonPlaceablesVisible", caption = "P",
-		 style = mod_gui.button_style, tooltip = {"placeablesTooltips.topButton"}, visible = not player.mod_settings["placeablesSettingHideButton"].value }
-	end
+	CreateModButton(player.index)
 
 	--Create the main panel GUI elements
 	if player.gui.screen.framePlaceablesOuter == nil then
@@ -501,8 +529,7 @@ local function SettingsChanged(event)
 	local settingName = event.setting
 	--Player changed the setting to hide/unhide the top left button
 	if settingName == "placeablesSettingHideButton" then
-		local player = game.get_player(event.player_index)
-		mod_gui.get_button_flow(player).buttonPlaceablesVisible.visible = not player.mod_settings["placeablesSettingHideButton"].value
+		CreateModButton(event.player_index)
 	end
 	--Player toggled "Power User" mode, also known as the mode that makes the window buttons render on left side
 	if settingName == "placeablesSettingPowerUser" then
