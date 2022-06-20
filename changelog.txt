@@ -1,4 +1,22 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.1.5
+Date: 2022-6-14
+  Bugfixes:
+    - Fixed a possible desync
+
+---------------------------------------------------------------------------------------------------
+Version: 1.1.4
+Date: 2022-6-14
+  Features:
+    - Added Localization - RU, written by Aquilo
+
+---------------------------------------------------------------------------------------------------
+Version: 1.1.3
+Date: 2022-5-09
+  Bugfixes:
+    - Fix major issue with having multiple of things like cars/tanks/etc. The placeables GUI will no longer update perfectly when using those items, but otherwise everything should work fine.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.1.2
 Date: 2022-5-04
   Bugfixes:

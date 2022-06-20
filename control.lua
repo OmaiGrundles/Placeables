@@ -5,8 +5,8 @@
 local mod_gui = require("mod-gui")
 
 global.playerData = {}
-local itemValidCache = {}
-local ignoreEventFlag = false
+global.itemValidCache = {}
+global.ignoreEventFlag = false
 
 local function CreatePlayerData(playerIndex)
 	playerData = global.playerData
@@ -240,22 +240,24 @@ local function IsPlaceableItem(prototype)
 end
 
 local function CheckInventory(player, inventory, buttonData, handSlot)
+	local itemValidCache = global.itemValidCache
 	local playerStack = nil
 	local itemsInserted = false
 	if handSlot ~= -1 then
-		ignoreEventFlag = true
+		global.ignoreEventFlag = true
 
 		--Put a duplicate of the held stack back into the inventory temporarily so that contents will be in proper order
         local pStack = player.cursor_stack
         local name = pStack.name
         if itemValidCache[name] then
-            local count = inventory.insert(pStack)
-            if count ~= 0 then
-                itemsInserted = true
-                playerStack = {name = name, count = count}
-            end
-        end
-
+			if not pStack.is_item_with_entity_data and not pStack.is_item_with_inventory then
+            	local count = inventory.insert(pStack)
+            	if count ~= 0 then
+                	itemsInserted = true
+					playerStack = {name = name, count = count}
+            	end
+        	end
+		end
 	end
 	local contents = inventory.get_contents()
 	for key, value in pairs(contents) do
@@ -304,15 +306,16 @@ local function UpdateGUI(playerIndex)
 end
 
 local function CallUpdateWhenNotFlagged(event)
-	if ignoreEventFlag == false then
+	if global.ignoreEventFlag == false then
 		UpdateGUI(event.player_index)
 	else
-		ignoreEventFlag = false
+		global.ignoreEventFlag = false
 	end
 end
 script.on_event(defines.events.on_player_main_inventory_changed, CallUpdateWhenNotFlagged)
 
 local function PlayerRemovedEntity(event)
+	local itemValidCache = global.itemValidCache
 	local player = game.get_player(event.player_index)
 	local buttonData = global.playerData[player.index].buttonData
 	local itemName = event.item_stack.name
@@ -325,7 +328,7 @@ local function PlayerRemovedEntity(event)
 			buttonData[itemName].count = buttonData[itemName].count + itemCount
 			button.number = buttonData[itemName].count
 			--Skip the next UpdateGUI function call since we updated the changed button here
-			ignoreEventFlag = true
+			global.ignoreEventFlag = true
 		else
 			--This item is valid but a button for it doesnt exist. Force update the GUI
 			UpdateGUI(event.player_index)
@@ -333,7 +336,7 @@ local function PlayerRemovedEntity(event)
 	else
 		if itemValidCache[itemName] == false then
 			--Skip the next UpdateGUI function call because the item mined isnt supposed to be displayed on the button list anyway
-			ignoreEventFlag = true
+			global.ignoreEventFlag = true
 		else
 			--This item hasnt been validated yet. Validate the item.
 			itemValidCache[itemName] = IsPlaceableItem(game.item_prototypes[itemName])
@@ -524,6 +527,8 @@ local function InitializeMod()
 			UpdateGUI(game.players[key].index)
 		end
 	end
+	global.itemValidCache = {}
+	global.ignoreEventFlag = false
 end
 script.on_init(InitializeMod)
 script.on_event(defines.events.on_player_created, InitializeMod)
