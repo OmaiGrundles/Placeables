@@ -4,12 +4,13 @@
 
 local mod_gui = require("mod-gui")
 
-global.playerData = {}
-global.itemValidCache = {}
-global.ignoreEventFlag = false
+--globals and their initial states
+--playerData = {}
+--itemValidCache = {}
+--ignoreEventFlag = false
 
 local function CreatePlayerData(playerIndex)
-	playerData = global.playerData
+	local playerData = global.playerData
 	--Initialize data stored about the player
 	if playerData[playerIndex] == nil then
 		playerData[playerIndex] = {
@@ -247,16 +248,16 @@ local function CheckInventory(player, inventory, buttonData, handSlot)
 		global.ignoreEventFlag = true
 
 		--Put a duplicate of the held stack back into the inventory temporarily so that contents will be in proper order
-        local pStack = player.cursor_stack
-        local name = pStack.name
-        if itemValidCache[name] then
+		local pStack = player.cursor_stack
+		local name = pStack.name
+		if itemValidCache[name] then
 			if not pStack.is_item_with_entity_data and not pStack.is_item_with_inventory then
-            	local count = inventory.insert(pStack)
-            	if count ~= 0 then
-                	itemsInserted = true
+				local count = inventory.insert(pStack)
+				if count ~= 0 then
+					itemsInserted = true
 					playerStack = {name = name, count = count}
-            	end
-        	end
+				end
+			end
 		end
 	end
 	local contents = inventory.get_contents()
@@ -514,6 +515,9 @@ script.on_event(defines.events.on_gui_click, PressButton)
 
 local function InitializeMod()
 	--Loop through every player and create the GUI/data for that player
+	global.playerData = {}
+	global.itemValidCache = {}
+	global.ignoreEventFlag = false
 	for key, value in pairs(game.players) do
 		CreatePlayerData(game.players[key].index)
 		CreateGUI(game.players[key])
@@ -527,8 +531,6 @@ local function InitializeMod()
 			UpdateGUI(game.players[key].index)
 		end
 	end
-	global.itemValidCache = {}
-	global.ignoreEventFlag = false
 end
 script.on_init(InitializeMod)
 script.on_event(defines.events.on_player_created, InitializeMod)
